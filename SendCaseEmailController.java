@@ -1,5 +1,9 @@
 /*
+<<<<<<< HEAD
 2017/3/9 13:50 -- List attachment OK, but cannot modify
+=======
+2017/3/9 19:08 Multi mail perfect go
+>>>>>>> refs/heads/AttachmentDev
 ** Class:  SendCaseEmailController
 ** Created by XYZ on 03/20/2015
 ** Description: Controller for the SendCaseEmail custom Visual Force page. 
@@ -9,6 +13,10 @@ public with sharing class SendCaseEmailController {
     public String addlRecipients {get; set;}
     public Case   ourCase {get; set;}
     public EmailMessage emailMsg {get; private set;}
+<<<<<<< HEAD
+=======
+    public EmailMessage emailMsgPassword {get; private set;}
+>>>>>>> refs/heads/AttachmentDev
 
     private OrgWideEmailAddress sender = null;
 
@@ -20,12 +28,17 @@ public with sharing class SendCaseEmailController {
 
         // create our EmailMessage 
         emailMsg = new EmailMessage();
+<<<<<<< HEAD
+=======
+        emailMsgPassword = new EmailMessage();
+>>>>>>> refs/heads/AttachmentDev
 
         // get our org-wide email address to set from/sender field
         sender = [select Id from OrgWideEmailAddress where DisplayName = 'フフルル'];
     }
 
     public Attachment attachment {
+<<<<<<< HEAD
         get {
             if (attachment==null) {
                 System.debug('==========> creating new empty attachment.');
@@ -33,10 +46,14 @@ public with sharing class SendCaseEmailController {
             }
             return attachment;
         }
+=======
+        get {if (attachment==null) attachment = new Attachment(); return attachment;}
+>>>>>>> refs/heads/AttachmentDev
         set;
     }
     
     public Attachment attachment01 {
+<<<<<<< HEAD
         get {
             if (attachment01==null) {
                 System.debug('==========> creating new empty attachment01.');
@@ -61,12 +78,31 @@ public with sharing class SendCaseEmailController {
         set;
     }
     */
+=======
+        get {if (attachment01==null) attachment01 = new Attachment(); return attachment01;}
+        set;
+    }
+
+    public Attachment attachment02 {
+        get {if (attachment02==null) attachment02 = new Attachment(); return attachment02;}
+        set;
+    }
+
+    public Attachment attachment03 {
+        get {if (attachment03==null) attachment03 = new Attachment(); return attachment03;}
+        set;
+    }
+>>>>>>> refs/heads/AttachmentDev
 
     // send email message per the attributes specified by user.
     public PageReference send() {
         try {
             // now create our SingleEmailMessage to send out.
             Messaging.SingleEmailMessage singleEmailMsg = new Messaging.SingleEmailMessage();
+<<<<<<< HEAD
+=======
+            Messaging.SingleEmailMessage singleEmailMsgPassword = new Messaging.SingleEmailMessage();
+>>>>>>> refs/heads/AttachmentDev
 
             // concatenate all Bcc Addresses
             if (emailMsg.BccAddress != null && emailMsg.BccAddress != '') {
@@ -98,6 +134,7 @@ public with sharing class SendCaseEmailController {
             lstToAddresses.add(emailMsg.ToAddress);
             singleEmailMsg.setToAddresses(lstToAddresses); 
 
+<<<<<<< HEAD
             // now we need to reset the ToAddress for our EmailMessage.
             emailMsg.ToAddress += (addlRecipients != null ? ';' + addlRecipients : '');
             
@@ -105,12 +142,29 @@ public with sharing class SendCaseEmailController {
             
             System.debug('attachment exist' + (attachment!=null));
             System.debug('attachmentList exist' + (attachmentList!=null));
+=======
+            //copy singleEmailMsg to singleEmailMsgPassword, then set subject and text body.
+            singleEmailMsgPassword.setToAddresses(singleEmailMsg.ToAddresses);
+            singleEmailMsgPassword.setBccAddresses(singleEmailMsg.BccAddresses);
+            singleEmailMsgPassword.setCcAddresses(singleEmailMsg.CcAddresses);
+            singleEmailMsgPassword.setSubject('Here is the password');
+            singleEmailMsgPassword.setPlainTextBody(emailMsgPassword.TextBody);
+
+            System.debug('singleEmailMsg' + singleEmailMsg);
+            System.debug('singleEmailMsgPassword' + singleEmailMsgPassword);
+
+            // now we need to reset the ToAddress for our EmailMessage.
+            emailMsg.ToAddress += (addlRecipients != null ? ';' + addlRecipients : '');
+            
+            System.debug('attachment exist' + (attachment!=null));
+>>>>>>> refs/heads/AttachmentDev
             
             if (attachment.body == null) {
                 System.debug('Let us install attachment object!');
                 attachment.Body = EncodingUtil.base64Decode('UEsDBBQAAAAAAJyKVUqjvzE8CgAAAAoAAAAKAAAAc3Bjb2RlLnR4dGFiYzEyMzQ1NjdQSwECFAAUAAAAAACcilVKo78xPAoAAAAKAAAACgAAAAAAAAABACAAAAAAAAAAc3Bjb2RlLnR4dFBLBQYAAAAAAQABADgAAAAyAAAAAAA=');
                 attachment.ContentType = 'application/zip';
                 attachment.Name = 'SPCode0306.zip';
+<<<<<<< HEAD
             }
             
             if (attachmentList[0] == null) {
@@ -161,6 +215,47 @@ public with sharing class SendCaseEmailController {
                 if (attachment.Body != null) {
                     attachment.parentId=emailMsg.Id;
                     //insert attachment;
+=======
+            }else{System.debug('the name of attachment is' + attachment.name);}
+            
+            // now attach file to email if there is one. Have to check the Body as Attachment
+            // itself will never be null as it is always created first time it is accessed.
+            
+            System.debug('start attaching');
+            System.debug('the name of attachment is ' + attachment.name);
+            System.debug('the name of attachment01 is ' + attachment01.name);
+            System.debug('the name of attachment02 is ' + attachment02.name);
+            System.debug('the name of attachment03 is ' + attachment03.name);
+
+            List<Messaging.EmailFileAttachment> emailAttachmentList = new List<Messaging.EmailFileAttachment>();
+            for (Attachment attachmentEle: new List<Attachment>{attachment,attachment01,attachment02,attachment03}){
+                if (attachmentEle.body != null) {
+                    Messaging.EmailFileAttachment emailAttachment = new Messaging.EmailFileAttachment();
+                    emailAttachment.setBody(attachmentEle.Body);
+                    emailAttachment.setFileName(attachmentEle.Name);
+                    emailAttachmentList.add(emailAttachment);
+                }
+            }
+            singleEmailMsg.setFileAttachments(emailAttachmentList);
+
+            System.debug('singleEmailMsg before sending--' + singleEmailMsg);
+            System.debug('singleEmailMsgPassword before sending--' + singleEmailMsgPassword);
+
+            List<Messaging.SendEmailResult> results =  Messaging.sendEmail(
+                new List<Messaging.SingleEmailMessage> {singleEmailMsg, singleEmailMsgPassword});
+
+            System.debug(results);
+            // now parse  our results
+            // on success, return to calling page - Case view.
+            if (results[0].success) {
+                // now insert EmailMessage into database so it is associated with Case.
+                UtilitySOQL.executeInsert(emailMsg);
+                UtilitySOQL.executeInsert(emailMsgPassword);
+                // and insert attachment into database as well, associating it with our emailMessage
+                if (attachment.Body != null) {
+                    attachment.parentId=emailMsg.Id;
+                    UtilitySOQL.executeInsert(attachment);
+>>>>>>> refs/heads/AttachmentDev
                 }
 
                 PageReference pgRef = new PageReference('/' + ourCase.Id);
@@ -173,7 +268,11 @@ public with sharing class SendCaseEmailController {
                 ApexPages.addMessage(new ApexPages.Message(ApexPages.Severity.ERROR, errorMsg));
                 return null;
             }
+<<<<<<< HEAD
             */
+=======
+
+>>>>>>> refs/heads/AttachmentDev
         }
         catch (Exception e) {
             // on failure, display error message on existing page so return null to return there.
@@ -212,7 +311,11 @@ public with sharing class SendCaseEmailController {
         // send dummy email to populate HTML letterhead in our EmailMessage object's html body.
         String[] toAddresses = new String[]{'yliu@netprotections.co.jp'};
         dummyEmailMsg.setToAddresses(toAddresses);
+<<<<<<< HEAD
         dummyEmailMsg.setReplyTo(SUPPORT_EMAIL_ADDRESS); 
+=======
+        dummyEmailMsg.setReplyTo(SUPPORT_EMAIL_ADDRESS);
+>>>>>>> refs/heads/AttachmentDev
         
         // now send email and then roll it back but invocation of sendEmail() 
         // means merge of letterhead & body is done
@@ -238,6 +341,17 @@ public with sharing class SendCaseEmailController {
         emailMsg.FromAddress = SUPPORT_EMAIL_ADDRESS; 
         emailMsg.CcAddress   = '';
         emailMsg.ParentId    = ourCase.Id;
+<<<<<<< HEAD
+=======
+
+        emailMsgPassword.Subject     = 'Here is the password';
+        emailMsgPassword.TextBody    = dummyEmailMsg.getPlainTextBody();
+        emailMsgPassword.ToAddress   = dummyEmailMsg.getToAddresses().get(0);
+        emailMsgPassword.FromAddress = SUPPORT_EMAIL_ADDRESS; 
+        emailMsgPassword.CcAddress   = '';
+        emailMsgPassword.ParentId    = ourCase.Id;
+
+>>>>>>> refs/heads/AttachmentDev
         return null;
     }
 }
