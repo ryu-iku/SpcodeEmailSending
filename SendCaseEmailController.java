@@ -1,7 +1,6 @@
 /*
-2017/3/9 13:50 -- List attachment OK, but cannot modify
+2017/3/9 16:53 4 attachments OK.
 ** Class:  SendCaseEmailController
-** Created by XYZ on 03/20/2015
 ** Description: Controller for the SendCaseEmail custom Visual Force page. 
 */
 public with sharing class SendCaseEmailController {
@@ -36,6 +35,7 @@ public with sharing class SendCaseEmailController {
         set;
     }
     
+    
     public Attachment attachment01 {
         get {
             if (attachment01==null) {
@@ -46,21 +46,28 @@ public with sharing class SendCaseEmailController {
         }
         set;
     }
-    
-    
-    public List<Attachment> attachmentList{get; set;}
-    /*
-    public List<Attachment> attachmentList{
+
+    public Attachment attachment02 {
         get {
-            if (attachmentList==null) {
-                System.debug('==========> creating new empty attachmentList.');
-                attachmentList = new List<Attachment>(new Attachment[3]);
+            if (attachment02==null) {
+                System.debug('==========> creating new empty attachment01.');
+                attachment02 = new Attachment();
             }
-            return attachmentList;
+            return attachment02;
         }
         set;
     }
-    */
+
+    public Attachment attachment03 {
+        get {
+            if (attachment03==null) {
+                System.debug('==========> creating new empty attachment03.');
+                attachment03 = new Attachment();
+            }
+            return attachment03;
+        }
+        set;
+    }
 
     // send email message per the attributes specified by user.
     public PageReference send() {
@@ -101,79 +108,34 @@ public with sharing class SendCaseEmailController {
             // now we need to reset the ToAddress for our EmailMessage.
             emailMsg.ToAddress += (addlRecipients != null ? ';' + addlRecipients : '');
             
-            List<Attachment> attachmentList = new List<Attachment>(new Attachment[3]);
-            
             System.debug('attachment exist' + (attachment!=null));
-            System.debug('attachmentList exist' + (attachmentList!=null));
             
             if (attachment.body == null) {
                 System.debug('Let us install attachment object!');
                 attachment.Body = EncodingUtil.base64Decode('UEsDBBQAAAAAAJyKVUqjvzE8CgAAAAoAAAAKAAAAc3Bjb2RlLnR4dGFiYzEyMzQ1NjdQSwECFAAUAAAAAACcilVKo78xPAoAAAAKAAAACgAAAAAAAAABACAAAAAAAAAAc3Bjb2RlLnR4dFBLBQYAAAAAAQABADgAAAAyAAAAAAA=');
                 attachment.ContentType = 'application/zip';
                 attachment.Name = 'SPCode0306.zip';
-            }
+            }else{System.debug('the name of attachment is' + attachment.name);}
             
-            if (attachmentList[0] == null) {
-                System.debug('Let us install our brother attachment01 object!');
-                attachmentList[0] = new Attachment();
-                attachmentList[0].Body = EncodingUtil.base64Decode('UEsDBBQAAAAAAJyKVUqjvzE8CgAAAAoAAAAKAAAAc3Bjb2RlLnR4dGFiYzEyMzQ1NjdQSwECFAAUAAAAAACcilVKo78xPAoAAAAKAAAACgAAAAAAAAABACAAAAAAAAAAc3Bjb2RlLnR4dFBLBQYAAAAAAQABADgAAAAyAAAAAAA=');
-                attachmentList[0].ContentType = 'application/zip';
-                attachmentList[0].Name = 'SPCode0306_01.zip';
-            }
-            
-
             // now attach file to email if there is one. Have to check the Body as Attachment
             // itself will never be null as it is always created first time it is accessed.
             
-            
-            System.debug('the name of attachment is' + attachment.name);
-            System.debug('the name of our brother attachment[0] is' + attachmentList[0].name);
-            
-            
-            if (attachment.Body != null) {
-                List<Messaging.EmailFileAttachment> emailAttachmentList = new List<Messaging.EmailFileAttachment>();
-            
-                Messaging.EmailFileAttachment emailAttachment = new Messaging.EmailFileAttachment();
-                emailAttachment.setBody(attachment.Body);
-                emailAttachment.setFileName(attachment.Name);
-                emailAttachmentList.add(emailAttachment);
-                System.debug('emailAttachment name is ' + emailAttachment);
-                
-                Messaging.EmailFileAttachment emailAttachment01 = new Messaging.EmailFileAttachment();
-                emailAttachment01.setBody(attachmentList[0].Body);
-                emailAttachment01.setFileName(attachmentList[0].Name);
-                emailAttachmentList.add(emailAttachment01);
-                
-                if (emailAttachment.Body != null){
-                    singleEmailMsg.setFileAttachments(emailAttachmentList);
+            System.debug('start attaching');
+            System.debug('the name of attachment is ' + attachment.name);
+            System.debug('the name of attachment01 is ' + attachment01.name);
+            System.debug('the name of attachment02 is ' + attachment02.name);
+            System.debug('the name of attachment03 is ' + attachment03.name);
+
+            List<Messaging.EmailFileAttachment> emailAttachmentList = new List<Messaging.EmailFileAttachment>();
+            for (Attachment attachmentEle: new List<Attachment>{attachment,attachment01,attachment02,attachment03}){
+                if (attachmentEle != null) {
+                    Messaging.EmailFileAttachment emailAttachment = new Messaging.EmailFileAttachment();
+                    emailAttachment.setBody(attachmentEle.Body);
+                    emailAttachment.setFileName(attachmentEle.Name);
+                    emailAttachmentList.add(emailAttachment);
                 }
             }
-            //List<Messaging.SendEmailResult> results =  Messaging.sendEmail(new List<Messaging.SingleEmailMessage> {singleEmailMsg});
-
-            // now parse  our results
-            // on success, return to calling page - Case view.
-            
-            /*
-            if (results[0].success) {
-                // now insert EmailMessage into database so it is associated with Case.
-                //insert emailMsg;
-                // and insert attachment into database as well, associating it with our emailMessage
-                if (attachment.Body != null) {
-                    attachment.parentId=emailMsg.Id;
-                    //insert attachment;
-                }
-
-                PageReference pgRef = new PageReference('/' + ourCase.Id);
-                pgRef.setRedirect(true);
-                return pgRef;
-            } else {
-                // on failure, display error message on existing page so return null to return there.
-                String errorMsg = 'Error sending Email Message. Details = ' + results.get(0).getErrors()[0].getMessage();
-                System.debug('==========> ' + errorMsg);
-                ApexPages.addMessage(new ApexPages.Message(ApexPages.Severity.ERROR, errorMsg));
-                return null;
-            }
-            */
+            singleEmailMsg.setFileAttachments(emailAttachmentList);
         }
         catch (Exception e) {
             // on failure, display error message on existing page so return null to return there.
@@ -212,7 +174,7 @@ public with sharing class SendCaseEmailController {
         // send dummy email to populate HTML letterhead in our EmailMessage object's html body.
         String[] toAddresses = new String[]{'yliu@netprotections.co.jp'};
         dummyEmailMsg.setToAddresses(toAddresses);
-        dummyEmailMsg.setReplyTo(SUPPORT_EMAIL_ADDRESS); 
+        dummyEmailMsg.setReplyTo(SUPPORT_EMAIL_ADDRESS);
         
         // now send email and then roll it back but invocation of sendEmail() 
         // means merge of letterhead & body is done
