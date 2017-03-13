@@ -1,6 +1,7 @@
 /*
-2017/3/9 16:53 4 attachments OK.
+2017/3/9 17:29 mail sent successfully
 ** Class:  SendCaseEmailController
+** Created by XYZ on 03/20/2015
 ** Description: Controller for the SendCaseEmail custom Visual Force page. 
 */
 public with sharing class SendCaseEmailController {
@@ -25,47 +26,22 @@ public with sharing class SendCaseEmailController {
     }
 
     public Attachment attachment {
-        get {
-            if (attachment==null) {
-                System.debug('==========> creating new empty attachment.');
-                attachment = new Attachment();
-            }
-            return attachment;
-        }
+        get {if (attachment==null) attachment = new Attachment(); return attachment;}
         set;
     }
     
-    
     public Attachment attachment01 {
-        get {
-            if (attachment01==null) {
-                System.debug('==========> creating new empty attachment01.');
-                attachment01 = new Attachment();
-            }
-            return attachment01;
-        }
+        get {if (attachment01==null) attachment01 = new Attachment(); return attachment01;}
         set;
     }
 
     public Attachment attachment02 {
-        get {
-            if (attachment02==null) {
-                System.debug('==========> creating new empty attachment01.');
-                attachment02 = new Attachment();
-            }
-            return attachment02;
-        }
+        get {if (attachment02==null) attachment02 = new Attachment(); return attachment02;}
         set;
     }
 
     public Attachment attachment03 {
-        get {
-            if (attachment03==null) {
-                System.debug('==========> creating new empty attachment03.');
-                attachment03 = new Attachment();
-            }
-            return attachment03;
-        }
+        get {if (attachment03==null) attachment03 = new Attachment(); return attachment03;}
         set;
     }
 
@@ -136,6 +112,32 @@ public with sharing class SendCaseEmailController {
                 }
             }
             singleEmailMsg.setFileAttachments(emailAttachmentList);
+
+            List<Messaging.SendEmailResult> results =  Messaging.sendEmail(
+                new List<Messaging.SingleEmailMessage> {singleEmailMsg});
+
+            // now parse  our results
+            // on success, return to calling page - Case view.
+            if (results[0].success) {
+                // now insert EmailMessage into database so it is associated with Case.
+                UtilitySOQL.executeInsert(emailMsg);
+                // and insert attachment into database as well, associating it with our emailMessage
+                if (attachment.Body != null) {
+                    attachment.parentId=emailMsg.Id;
+                    UtilitySOQL.executeInsert(attachment);
+                }
+
+                PageReference pgRef = new PageReference('/' + ourCase.Id);
+                pgRef.setRedirect(true);
+                return pgRef;
+            } else {
+                // on failure, display error message on existing page so return null to return there.
+                String errorMsg = 'Error sending Email Message. Details = ' + results.get(0).getErrors()[0].getMessage();
+                System.debug('==========> ' + errorMsg);
+                ApexPages.addMessage(new ApexPages.Message(ApexPages.Severity.ERROR, errorMsg));
+                return null;
+            }
+
         }
         catch (Exception e) {
             // on failure, display error message on existing page so return null to return there.
