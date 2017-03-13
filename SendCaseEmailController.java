@@ -1,5 +1,5 @@
 /*
-2017/3/9 17:29 mail sent successfully
+2017/3/9 19:08 Multi mail perfect go
 ** Class:  SendCaseEmailController
 ** Created by XYZ on 03/20/2015
 ** Description: Controller for the SendCaseEmail custom Visual Force page. 
@@ -9,6 +9,7 @@ public with sharing class SendCaseEmailController {
     public String addlRecipients {get; set;}
     public Case   ourCase {get; set;}
     public EmailMessage emailMsg {get; private set;}
+    public EmailMessage emailMsgPassword {get; private set;}
 
     private OrgWideEmailAddress sender = null;
 
@@ -20,6 +21,7 @@ public with sharing class SendCaseEmailController {
 
         // create our EmailMessage 
         emailMsg = new EmailMessage();
+        emailMsgPassword = new EmailMessage();
 
         // get our org-wide email address to set from/sender field
         sender = [select Id from OrgWideEmailAddress where DisplayName = 'フフルル'];
@@ -50,6 +52,7 @@ public with sharing class SendCaseEmailController {
         try {
             // now create our SingleEmailMessage to send out.
             Messaging.SingleEmailMessage singleEmailMsg = new Messaging.SingleEmailMessage();
+            Messaging.SingleEmailMessage singleEmailMsgPassword = new Messaging.SingleEmailMessage();
 
             // concatenate all Bcc Addresses
             if (emailMsg.BccAddress != null && emailMsg.BccAddress != '') {
@@ -81,6 +84,16 @@ public with sharing class SendCaseEmailController {
             lstToAddresses.add(emailMsg.ToAddress);
             singleEmailMsg.setToAddresses(lstToAddresses); 
 
+            //copy singleEmailMsg to singleEmailMsgPassword, then set subject and text body.
+            singleEmailMsgPassword.setToAddresses(singleEmailMsg.ToAddresses);
+            singleEmailMsgPassword.setBccAddresses(singleEmailMsg.BccAddresses);
+            singleEmailMsgPassword.setCcAddresses(singleEmailMsg.CcAddresses);
+            singleEmailMsgPassword.setSubject('Here is the password');
+            singleEmailMsgPassword.setPlainTextBody(emailMsgPassword.TextBody);
+
+            System.debug('singleEmailMsg' + singleEmailMsg);
+            System.debug('singleEmailMsgPassword' + singleEmailMsgPassword);
+
             // now we need to reset the ToAddress for our EmailMessage.
             emailMsg.ToAddress += (addlRecipients != null ? ';' + addlRecipients : '');
             
@@ -104,7 +117,7 @@ public with sharing class SendCaseEmailController {
 
             List<Messaging.EmailFileAttachment> emailAttachmentList = new List<Messaging.EmailFileAttachment>();
             for (Attachment attachmentEle: new List<Attachment>{attachment,attachment01,attachment02,attachment03}){
-                if (attachmentEle != null) {
+                if (attachmentEle.body != null) {
                     Messaging.EmailFileAttachment emailAttachment = new Messaging.EmailFileAttachment();
                     emailAttachment.setBody(attachmentEle.Body);
                     emailAttachment.setFileName(attachmentEle.Name);
@@ -113,14 +126,19 @@ public with sharing class SendCaseEmailController {
             }
             singleEmailMsg.setFileAttachments(emailAttachmentList);
 
-            List<Messaging.SendEmailResult> results =  Messaging.sendEmail(
-                new List<Messaging.SingleEmailMessage> {singleEmailMsg});
+            System.debug('singleEmailMsg before sending--' + singleEmailMsg);
+            System.debug('singleEmailMsgPassword before sending--' + singleEmailMsgPassword);
 
+            List<Messaging.SendEmailResult> results =  Messaging.sendEmail(
+                new List<Messaging.SingleEmailMessage> {singleEmailMsg, singleEmailMsgPassword});
+
+            System.debug(results);
             // now parse  our results
             // on success, return to calling page - Case view.
             if (results[0].success) {
                 // now insert EmailMessage into database so it is associated with Case.
                 UtilitySOQL.executeInsert(emailMsg);
+                UtilitySOQL.executeInsert(emailMsgPassword);
                 // and insert attachment into database as well, associating it with our emailMessage
                 if (attachment.Body != null) {
                     attachment.parentId=emailMsg.Id;
@@ -202,6 +220,14 @@ public with sharing class SendCaseEmailController {
         emailMsg.FromAddress = SUPPORT_EMAIL_ADDRESS; 
         emailMsg.CcAddress   = '';
         emailMsg.ParentId    = ourCase.Id;
+
+        emailMsgPassword.Subject     = 'Here is the password';
+        emailMsgPassword.TextBody    = dummyEmailMsg.getPlainTextBody();
+        emailMsgPassword.ToAddress   = dummyEmailMsg.getToAddresses().get(0);
+        emailMsgPassword.FromAddress = SUPPORT_EMAIL_ADDRESS; 
+        emailMsgPassword.CcAddress   = '';
+        emailMsgPassword.ParentId    = ourCase.Id;
+
         return null;
     }
 }
